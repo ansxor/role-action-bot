@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "typescript",
+			"tsconfig": "../../../../../../C:/Users/Darien/Documents/GitHub/role-action-bot/tsconfig.json",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"label": "tsc: build - ../../../../../../C:/Users/Darien/Documents/GitHub/role-action-bot/tsconfig.json"
+		}
+	]
+}

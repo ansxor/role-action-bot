@@ -1,0 +1,31 @@
+{
+  "name": "role-action-bot",
+  "version": "1.0.0",
+  "description": "A bot that performs actions with context of roles",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ansxor/role-action-bot.git"
+  },
+  "author": "Darien Reese",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/ansxor/role-action-bot/issues"
+  },
+  "homepage": "https://github.com/ansxor/role-action-bot#readme",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.6.0",
+    "@typescript-eslint/parser": "^4.6.0",
+    "discord.js": "^12.4.1",
+    "eslint": "^7.12.1",
+    "eslint-config-airbnb-base": "^14.2.0",
+    "eslint-plugin-import": "^2.22.1",
+    "typescript": "^4.0.5"
+  },
+  "dependencies": {
+    "discord.js": "^12.4.1"
+  }
+}
