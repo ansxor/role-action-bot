@@ -1,63 +1,93 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = void 0;
-var Discord = require("discord.js");
-var RoleTimerMessage_1 = require("./RoleTimerMessage");
-var Bot = /** @class */ (function () {
-    function Bot(token) {
+const Discord = require("discord.js");
+const RoleTimerMessage_1 = require("./RoleTimerMessage");
+class Bot {
+    constructor(token) {
         // this is because discord.js is written in JavaScript so =this= is overwritten,
         // so this allows us to access the TypeScript object inside of the handlers
-        var b = this;
-        this.trackedMessage = [];
+        const b = this;
+        this.trackedMessage = new Map();
         this.client = new Discord.Client();
-        this.client.on('ready', function () {
+        this.client.on('ready', () => {
             b.loginHandler();
         });
-        this.client.on('message', function (msg) {
+        this.client.on('message', (msg) => {
             b.messageHandler(msg);
         });
-        this.client.on('messageReactionAdd', function (r, u) {
+        this.client.on('messageReactionAdd', (r, u) => {
             b.reactionHandler(r, r.message.guild.member(u));
         });
-        this.client.on('messageReactionRemove', function (r, u) {
+        this.client.on('messageReactionRemove', (r, u) => {
             b.reactionRemovalHandler(r, r.message.guild.member(u));
+        });
+        this.client.on('voiceStateUpdate', (o, n) => {
+            if (o.channel !== n.channel) {
+                b.voiceUserMovedHandler(n.member);
+            }
         });
         this.client.login(token);
     }
     // eslint-disable-next-line class-methods-use-this
-    Bot.prototype.loginHandler = function () {
+    loginHandler() {
         // eslint-disable-next-line no-console
         console.log('Hello, World!');
-    };
-    Bot.prototype.messageHandler = function (msg) {
-        var _this = this;
+        const testConfig = {
+            emoji: '❓',
+            messageID: '',
+            actions: [
+                {
+                    roleID: '616833308592046121',
+                    offset: 1000,
+                },
+                {
+                    roleID: '771827876235313183',
+                    offset: 1000,
+                },
+                {
+                    roleID: '771880832309788693',
+                    offset: 1000,
+                },
+            ],
+        };
+        console.log(JSON.stringify(testConfig));
+    }
+    messageHandler(msg) {
         if (msg.content.substr(0, 1) === '>') {
-            var id_1 = msg.content.substr(1);
-            msg.channel.messages.fetch(id_1).then(function (m) {
-                _this.trackedMessage[id_1] = (new RoleTimerMessage_1.default(m));
-            });
+            const config = JSON.parse(msg.content.substr(1));
+            console.log(config);
+            this.trackedMessage.set(config.messageID, new RoleTimerMessage_1.default(config, msg));
         }
-    };
-    Bot.prototype.reactionHandler = function (rct, member) {
+    }
+    reactionHandler(rct, member) {
         if (member.user !== this.client.user) {
-            if (this.trackedMessage[rct.message.id] !== null) {
-                this.trackedMessage[rct.message.id].spawnTimer(rct, member);
+            if (this.trackedMessage.get(rct.message.id) !== null) {
+                console.log(this.trackedMessage.get(rct.message.id));
+                this.trackedMessage.get(rct.message.id).spawnTimer(rct, member);
             }
         }
-    };
-    Bot.prototype.reactionRemovalHandler = function (rct, member) {
+    }
+    reactionRemovalHandler(rct, member) {
         if (member.user !== this.client.user) {
-            if (this.trackedMessage[rct.message.id] !== null) {
-                this.trackedMessage[rct.message.id].removeRole(member);
+            if (this.trackedMessage.get(rct.message.id) !== null) {
+                this.trackedMessage.get(rct.message.id).removeRole(member);
             }
         }
         else {
             // we want to flush this from the collection if it is no longer attached
             // by the bot
-            this.trackedMessage[rct.message.id] = null;
+            this.trackedMessage.delete(rct.message.id);
         }
-    };
-    return Bot;
-}());
+    }
+    voiceUserMovedHandler(member) {
+        this.trackedMessage.forEach((m) => {
+            m.actions.forEach((a) => {
+                member.roles.remove(a.role);
+            });
+            m.removeReaction(member);
+        });
+    }
+}
 exports.default = Bot;
 //# sourceMappingURL=Bot.js.map

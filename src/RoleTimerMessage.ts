@@ -1,5 +1,7 @@
 import * as Discord from 'discord.js';
 import RoleTimerMessageAction from './RoleTimerMessageAction';
+import RoleTimerMessageConfig from './RoleTimerMessageConfig';
+import RoleTimerMessageActionConfig from './RoleTimerMessageActionConfig';
 
 class RoleTimerMessage {
   msg: Discord.Message;
@@ -8,32 +10,23 @@ class RoleTimerMessage {
 
   actions: RoleTimerMessageAction[];
 
-  constructor(msg: Discord.Message) {
-    this.msg = msg;
-    this.actions = [];
-    this.msg.guild.roles.fetch('616833308592046121')
-      .then((r: Discord.Role) => {
-        this.actions.push({
-          role: r,
-          offset: 1000,
+  constructor(conf: RoleTimerMessageConfig, msg: Discord.Message) {
+    msg.channel.messages.fetch(conf.messageID)
+      .then((m: Discord.Message) => {
+        this.msg = m;
+        this.actions = [];
+        conf.actions.forEach((ac: RoleTimerMessageActionConfig) => {
+          this.msg.guild.roles.fetch(ac.roleID)
+            .then((r: Discord.Role) => {
+              this.actions.push({
+                role: r,
+                offset: ac.offset,
+              });
+            });
         });
+        this.emoji = conf.emoji;
+        this.msg.react(this.emoji);
       });
-    this.msg.guild.roles.fetch('771827876235313183')
-      .then((r: Discord.Role) => {
-        this.actions.push({
-          role: r,
-          offset: 1000,
-        });
-      });
-    this.msg.guild.roles.fetch('771880832309788693')
-      .then((r: Discord.Role) => {
-        this.actions.push({
-          role: r,
-          offset: 1000,
-        });
-      });
-    this.emoji = '😄';
-    msg.react(this.emoji);
   }
 
   spawnTimer(rct: Discord.MessageReaction, user: Discord.GuildMember) {
@@ -70,6 +63,13 @@ class RoleTimerMessage {
             + '(pstt, dev check the console)');
           });
       });
+  }
+
+  removeReaction(user: Discord.GuildMember) {
+    // eslint-disable-next-line max-len
+    this.msg.reactions.cache.filter((reaction) => reaction.users.cache.has(user.id))
+      .get(this.emoji)
+      .remove();
   }
 }
 
