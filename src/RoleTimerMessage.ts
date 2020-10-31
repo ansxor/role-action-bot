@@ -25,21 +25,36 @@ class RoleTimerMessage {
           offset: 1000,
         });
       });
-    msg.react('😄');
+    this.msg.guild.roles.fetch('771880832309788693')
+      .then((r: Discord.Role) => {
+        this.actions.push({
+          role: r,
+          offset: 1000,
+        });
+      });
+    this.emoji = '😄';
+    msg.react(this.emoji);
   }
 
   spawnTimer(rct: Discord.MessageReaction, user: Discord.GuildMember) {
     let timeOffset: number = 0;
+    let cancelAction = false;
+
     this.actions
       .forEach((action: RoleTimerMessageAction) => {
         setTimeout(() => {
-          user.roles.add(action.role)
-            .then(() => {})
-            .catch((e) => {
-              this.msg.channel.send('This bot can\'t set roles for some reason???\n'
-              + '(pstt, dev check the console)');
-              console.log(e);
-            });
+          // eslint-disable-next-line max-len
+          const skipAction = cancelAction || (this.msg.reactions.cache.filter((reaction) => reaction.users.cache.has(user.id)).get(this.emoji) === undefined);
+          cancelAction = skipAction;
+
+          if (!skipAction) {
+            user.roles.add(action.role)
+              .then(() => {})
+              .catch(() => {
+                this.msg.channel.send('This bot can\'t set roles for some reason???\n'
+                + '(pstt, dev check the console)');
+              });
+          }
         }, timeOffset);
         timeOffset += action.offset;
       });
@@ -50,10 +65,9 @@ class RoleTimerMessage {
       .forEach((action: RoleTimerMessageAction) => {
         user.roles.remove(action.role)
           .then(() => {})
-          .catch((e) => {
+          .catch(() => {
             this.msg.channel.send('This bot can\'t set roles for some reason???\n'
             + '(pstt, dev check the console)');
-            console.log(e);
           });
       });
   }

@@ -14,3 +14,6 @@ Then it would append an emoji to the message specified by the ID and add that me
 | -emoji: string                        |
 | -role: Discord.Role                   |
 | +spawnTimer(user: Discord.User): void |
+
+# Moved to room remove role feature
+If moved to a room by another user, you should have this role removed as it will mean that someone will evaluate you.
