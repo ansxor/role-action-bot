@@ -26,6 +26,7 @@ class RoleTimerMessage {
         });
         this.emoji = conf.emoji;
         this.msg.react(this.emoji);
+        msg.delete();
       });
   }
 
@@ -36,16 +37,16 @@ class RoleTimerMessage {
     this.actions
       .forEach((action: RoleTimerMessageAction) => {
         setTimeout(() => {
-          // eslint-disable-next-line max-len
-          const skipAction = cancelAction || (this.msg.reactions.cache.filter((reaction) => reaction.users.cache.has(user.id)).get(this.emoji) === undefined);
+          const skipAction = cancelAction || (this.msg.reactions.cache
+            .filter((reaction) => reaction.users.cache.has(user.id))
+            .get(this.emoji) === undefined);
           cancelAction = skipAction;
 
           if (!skipAction) {
             user.roles.add(action.role)
               .then(() => {})
               .catch(() => {
-                this.msg.channel.send('This bot can\'t set roles for some reason???\n'
-                + '(pstt, dev check the console)');
+                this.msg.channel.send('This bot can\'t set roles for some reason???\n');
               });
           }
         }, timeOffset);
@@ -59,15 +60,14 @@ class RoleTimerMessage {
         user.roles.remove(action.role)
           .then(() => {})
           .catch(() => {
-            this.msg.channel.send('This bot can\'t set roles for some reason???\n'
-            + '(pstt, dev check the console)');
+            this.msg.channel.send('This bot can\'t set roles for some reason???\n');
           });
       });
   }
 
   removeReaction(user: Discord.GuildMember) {
-    // eslint-disable-next-line max-len
-    this.msg.reactions.cache.filter((reaction) => reaction.users.cache.has(user.id))
+    this.msg.reactions.cache
+      .filter((reaction) => reaction.users.cache.has(user.id))
       .get(this.emoji)
       .remove();
   }
