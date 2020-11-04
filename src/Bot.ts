@@ -1,6 +1,5 @@
 import * as Discord from 'discord.js';
-import RoleTimerMessage from './RoleTimerMessage';
-import RoleTimerMessageConfig from './RoleTimerMessageConfig';
+import { RoleTimerMessage, RoleTimerMessageConfig } from './RoleTimerMessage';
 
 class Bot {
   readonly client: Discord.Client;
@@ -70,6 +69,7 @@ class Bot {
   }
 
   private messageHandler(msg: Discord.Message) {
+    // TODO: Make command only available to people with correct permissions
     if (msg.content.substr(0, 1) === '>') {
       const config: RoleTimerMessageConfig = JSON.parse(msg.content.substr(1));
       this.trackedMessage.set(
