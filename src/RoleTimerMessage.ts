@@ -74,12 +74,17 @@ class RoleTimerMessage {
    * @param user The user that made the reaction on the message
    */
   spawnTimer(rct: Discord.MessageReaction, user: Discord.GuildMember) {
-    let timeOffset: number = 0;
     let cancelAction = false;
+    let currentRole: Discord.Role;
 
-    this.actions
-      .forEach((action: RoleTimerMessageAction) => {
-        setTimeout(() => {
+    const commitActions = (actions: RoleTimerMessageAction[]) => {
+      if (actions.length !== 0
+        && ((currentRole !== undefined && user.roles.cache.has(currentRole.id))
+        || (currentRole === undefined))) {
+        if (user.roles.cache.has(currentRole.id)) {
+          const action = actions.shift();
+          currentRole = action.role;
+
           const skipAction = cancelAction || (this.msg.reactions.cache
             .filter((reaction) => reaction.users.cache.has(user.id))
             .get(this.emoji) === undefined);
@@ -87,14 +92,18 @@ class RoleTimerMessage {
 
           if (!skipAction) {
             user.roles.add(action.role)
-              .then(() => {})
+              .then(() => {
+                setTimeout(() => commitActions(actions), action.offset);
+              })
               .catch(() => {
-                this.msg.channel.send('This bot can\'t set roles for some reason???\n');
+                this.msg.channel.send('This bot can\'t set roles for some reason???');
               });
           }
-        }, timeOffset);
-        timeOffset += action.offset;
-      });
+        }
+      }
+    };
+
+    commitActions([...this.actions]);
   }
 
   /**
