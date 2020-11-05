@@ -75,35 +75,37 @@ class RoleTimerMessage {
    */
   spawnTimer(rct: Discord.MessageReaction, user: Discord.GuildMember) {
     let cancelAction = false;
-    let currentRole: Discord.Role;
+    let currentRole: string;
 
-    const commitActions = (actions: RoleTimerMessageAction[]) => {
-      if (actions.length !== 0
-        && ((currentRole !== undefined && user.roles.cache.has(currentRole.id))
-        || (currentRole === undefined))) {
-        if (user.roles.cache.has(currentRole.id)) {
-          const action = actions.shift();
-          currentRole = action.role;
+    const commitActions = (actions: RoleTimerMessageAction[], us: Discord.GuildMember) => {
+      us.fetch(true)
+        .then((u: Discord.GuildMember) => {
+          if (actions.length !== 0
+            && ((currentRole === undefined)
+            || (currentRole !== undefined
+              && (u.roles.cache.some((role) => role.name === currentRole))))) {
+            const action = actions.shift();
+            currentRole = action.role.name;
 
-          const skipAction = cancelAction || (this.msg.reactions.cache
-            .filter((reaction) => reaction.users.cache.has(user.id))
-            .get(this.emoji) === undefined);
-          cancelAction = skipAction;
+            const skipAction = cancelAction || (this.msg.reactions.cache
+              .filter((reaction) => reaction.users.cache.has(u.id))
+              .get(this.emoji) === undefined);
+            cancelAction = skipAction;
 
-          if (!skipAction) {
-            user.roles.add(action.role)
-              .then(() => {
-                setTimeout(() => commitActions(actions), action.offset);
-              })
-              .catch(() => {
-                this.msg.channel.send('This bot can\'t set roles for some reason???');
-              });
+            if (!skipAction) {
+              u.roles.add(action.role)
+                .then(() => {
+                  setTimeout(() => commitActions(actions, u), action.offset);
+                })
+                .catch(() => {
+                  this.msg.channel.send('This bot can\'t set roles for some reason???');
+                });
+            }
           }
-        }
-      }
+        });
     };
 
-    commitActions([...this.actions]);
+    commitActions([...this.actions], user);
   }
 
   /**

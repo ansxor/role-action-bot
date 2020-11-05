@@ -44,28 +44,6 @@ class Bot {
 
   // eslint-disable-next-line class-methods-use-this
   private loginHandler() {
-    // eslint-disable-next-line no-console
-    console.log('Hello, World!');
-    const testConfig: RoleTimerMessageConfig = {
-      emoji: '❓',
-      messageID: '',
-      actions: [
-        {
-          roleID: '616833308592046121',
-          offset: 1000,
-        },
-        {
-          roleID: '771827876235313183',
-          offset: 1000,
-        },
-        {
-          roleID: '771880832309788693',
-          offset: 1000,
-        },
-      ],
-    };
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(testConfig));
   }
 
   private messageHandler(msg: Discord.Message) {
