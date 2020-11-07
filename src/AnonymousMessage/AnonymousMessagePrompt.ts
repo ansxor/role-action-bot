@@ -1,6 +1,5 @@
 import * as Discord from 'discord.js';
 import AnonymousMessagePromptHandler from './AnonymousMessagePromptHandler';
-import Bot from '../Bot';
 
 enum AnonymousMessagePromptState {
   ChannelSelection,
@@ -9,9 +8,9 @@ enum AnonymousMessagePromptState {
 
 /**
  * A prompt that asks questions to the user about where they would like
- * to send their anonymous questions.
+ * to send their anonymous messages.
  *
- * This would be initiated usually by DMing the bot with the questions of
+ * This would be initiated usually by DMing the bot with the contents of
  * the message, then the bot would prompt the user about where to send their
  * message - considering their roles.
  *
@@ -41,13 +40,13 @@ class AnonymousMessagePrompt {
   /** contains the message that requested the prompt */
   private requestMsg: Discord.Message;
 
-  constructor(msg: Discord.Message, handler: AnonymousMessagePromptHandler, bot: Bot) {
+  constructor(msg: Discord.Message, handler: AnonymousMessagePromptHandler) {
     if (msg.channel.type === 'dm') {
       this.requestMsg = msg;
       const user = msg.author;
       // try to get the member from a server automatically
       const servers = Array.from(handler.serverConfigurations.keys()).filter((k) => {
-        const server = bot.client.guilds.cache.get(k);
+        const server = msg.client.guilds.cache.get(k);
         return server.members.fetch(msg.author.id) !== null;
       });
       // TODO: If the bot is in several servers of the user, there should
@@ -55,8 +54,8 @@ class AnonymousMessagePrompt {
       // server if they ever attempt to send a message again.
       if (servers.length > 0) {
         const serverKey = servers[0];
-        if (bot.client.guilds.cache.has(serverKey)) {
-          const server = bot.client.guilds.cache.get(serverKey);
+        if (msg.client.guilds.cache.has(serverKey)) {
+          const server = msg.client.guilds.cache.get(serverKey);
           server.members.fetch(user.id).then((member) => {
             this.member = member;
             this.parentHandler = handler;
@@ -70,22 +69,65 @@ class AnonymousMessagePrompt {
   private sendChannelSelectionMessage(): void {
     this.currentState = AnonymousMessagePromptState.ChannelSelection;
     const server = this.parentHandler.serverConfigurations.get(this.member.guild.id);
-    const channelList = server.generateChannelList(this.member);
-    const messageEmbed = new Discord.MessageEmbed()
-      .setTitle('Select channel to send to...')
-      .setDescription(this.requestMsg.content.trim());
-    channelList.forEach((c) => {
-      messageEmbed.addField(c.emoji, c.description, true);
-    });
-    this.member.user.dmChannel.send(messageEmbed)
-      .then((m) => {
-        this.spawnTimeout();
-        channelList.forEach((c) => { m.react(c.emoji); });
+    server.generateChannelList(this.member)
+      .then((channelList) => {
+        const messageEmbed = new Discord.MessageEmbed()
+          .setTitle('Select channel to send to...')
+          .setDescription(this.requestMsg.content.trim());
+        channelList.forEach((c) => {
+          messageEmbed.addField(c.emoji, c.description, true);
+        });
+        this.member.user.dmChannel.send(messageEmbed)
+          .then((m) => {
+            this.spawnTimeout();
+            // TODO: Add a reaction that cancels the action.
+            channelList.forEach((c) => { m.react(c.emoji); });
+          });
       });
   }
 
-  reactionHandler(): void {
-    this.member.user.dmChannel.send(this.currentState);
+  reactionHandler(rct: Discord.MessageReaction): void {
+    if (this.currentState === AnonymousMessagePromptState.ChannelSelection) {
+      clearTimeout(this.timeoutEvent);
+      this.parentHandler
+        .serverConfigurations.get(this.member.guild.id)
+        .generateChannelList(this.member)
+        .then((channelList) => {
+          const channelSelection = channelList.find((c) => c.emoji === rct.emoji.toString());
+          const channel = this.member.guild.channels.cache
+            .get(channelSelection.channelID);
+          const messageEmbed = new Discord.MessageEmbed()
+            .setDescription(this.requestMsg.content.trim())
+            .setTimestamp();
+          (channel as Discord.TextChannel).send(messageEmbed)
+            .then((m) => {
+              const mEmbed = new Discord.MessageEmbed()
+                .setTitle('Your message has been successfully sent!')
+                .setDescription(`Click the link below to see your sent message!\nhttps://discord.com/channels/${this.member.guild.id}/${channelSelection.channelID}/${m.id}`);
+              this.requestMsg.channel.send(mEmbed);
+              this.parentHandler.promptMap.delete(this.member.user.id);
+            });
+          if (typeof channelSelection.secretChannelID !== 'undefined') {
+            const secretChannel = this.member.guild.channels.cache
+              .get(channelSelection.secretChannelID);
+            // this is just in case the person changed their nickname
+            // since the last time the cache was updated
+            this.member.fetch(true)
+              .then((m) => {
+                let author = m.user.username;
+                if (m.nickname !== null) {
+                  author = `${m.nickname} (${m.user.username})`;
+                }
+                const secretMessageEmbed = new Discord.MessageEmbed()
+                  .setAuthor(author, m.user.avatarURL())
+                  .setTitle('Anonymous Message Secret Info')
+                  .addField('Contents', this.requestMsg.content.trim())
+                  .setTimestamp();
+                (secretChannel as Discord.TextChannel).send(secretMessageEmbed);
+              });
+          }
+        });
+    }
   }
 
   private spawnTimeout(): void {
@@ -96,7 +138,7 @@ class AnonymousMessagePrompt {
       if (t.currentState === t.oldState) {
         t.requestMsg.channel.send('Sorry, your message has expired.')
           .then(() => {
-            t.parentHandler.promptMap.delete(t.member.id);
+            t.parentHandler.promptMap.delete(t.member.user.id);
           });
       } else {
         t.oldState = t.currentState;

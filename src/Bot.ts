@@ -62,6 +62,19 @@ class Bot {
         emoji: '❗',
       },
     ];
+    this.anonMsgPHandler.serverConfigurations.get('518116162320728075').roleConfigurations = [
+      {
+        roleID: '616833308592046121',
+        channels: [
+          {
+            emoji: '♿',
+            description: 'Channel for Ralsei',
+            channelID: '774531326203527178',
+            secretChannelID: '774536860374401025',
+          },
+        ],
+      },
+    ];
   }
 
   private messageHandler(msg: Discord.Message) {
@@ -74,7 +87,7 @@ class Bot {
           new RoleTimerMessage(config, msg),
         );
       } else if (msg.channel.type === 'dm') {
-        this.anonMsgPHandler.generatePrompt(msg, this);
+        this.anonMsgPHandler.generatePrompt(msg);
       }
     }
   }
@@ -83,8 +96,8 @@ class Bot {
     rct: Discord.MessageReaction,
     user: Discord.User,
   ) {
-    if (user.id !== this.client.user.id) {
-      if (this.trackedMessage.has(rct.message.id)) {
+    if (this.trackedMessage.has(rct.message.id)) {
+      if (user.id !== this.client.user.id) {
         rct.message.guild.members.fetch(user)
           .then((mmbr) => {
             this.trackedMessage
@@ -92,6 +105,8 @@ class Bot {
               .spawnTimer(rct, mmbr);
           });
       }
+    } else if (this.anonMsgPHandler.promptMap.has(user.id)) {
+      this.anonMsgPHandler.promptMap.get(user.id).reactionHandler(rct);
     }
   }
 

@@ -1,7 +1,6 @@
 import * as Discord from 'discord.js';
 import AnonymousMessagePrompt from './AnonymousMessagePrompt';
 import { AnonymousMessageServerConfiguration } from './AnonymousMessageServerConfiguration';
-import Bot from '../Bot';
 
 class AnonymousMessagePromptHandler {
   /** contains all of the current prompts, identified by the IDs
@@ -16,8 +15,8 @@ class AnonymousMessagePromptHandler {
     this.serverConfigurations = new Map();
   }
 
-  generatePrompt(msg: Discord.Message, bot: Bot): void {
-    this.promptMap.set(msg.author.id, new AnonymousMessagePrompt(msg, this, bot));
+  generatePrompt(msg: Discord.Message): void {
+    this.promptMap.set(msg.author.id, new AnonymousMessagePrompt(msg, this));
   }
 }
 
