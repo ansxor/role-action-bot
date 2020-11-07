@@ -29,6 +29,9 @@ class AnonymousMessageServerConfiguration {
   /** the associations available for all users */
   channelConfigurations: AnonymousMessageServerChannelConfiguration[];
 
+  /** a global secret channel to use if a secret channel is not channel scope specified */
+  secretChannelID?: string;
+
   constructor() {
     this.roleConfigurations = [];
     this.channelConfigurations = [];

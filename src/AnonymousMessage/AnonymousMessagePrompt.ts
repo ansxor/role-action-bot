@@ -101,31 +101,38 @@ class AnonymousMessagePrompt {
             .setTimestamp();
           (channel as Discord.TextChannel).send(messageEmbed)
             .then((m) => {
+              const messageLink = `https://discord.com/channels/${this.member.guild.id}/${channelSelection.channelID}/${m.id}`;
               const mEmbed = new Discord.MessageEmbed()
                 .setTitle('Your message has been successfully sent!')
-                .setDescription(`Click the link below to see your sent message!\nhttps://discord.com/channels/${this.member.guild.id}/${channelSelection.channelID}/${m.id}`);
+                .setDescription(`Click the link below to see your sent message!\n${messageLink}`);
               this.requestMsg.channel.send(mEmbed);
               this.parentHandler.promptMap.delete(this.member.user.id);
+              let { secretChannelID } = channelSelection;
+              if (typeof secretChannelID === 'undefined') {
+                secretChannelID = this.parentHandler.serverConfigurations
+                  .get(this.member.guild.id).secretChannelID;
+              }
+              if (typeof secretChannelID !== 'undefined') {
+                const secretChannel = this.member.guild.channels.cache
+                  .get(secretChannelID);
+                // this is just in case the person changed their nickname
+                // since the last time the cache was updated
+                this.member.fetch(true)
+                  .then((mb) => {
+                    let author = `${mb.user.username} <${mb.user.id}>`;
+                    if (mb.nickname !== null) {
+                      author = `${mb.nickname} (${mb.user.username}) <${mb.user.id}>`;
+                    }
+                    const secretMessageEmbed = new Discord.MessageEmbed()
+                      .setAuthor(author, mb.user.avatarURL())
+                      .setTitle('Anonymous Message Secret Info')
+                      .addField('Contents', this.requestMsg.content.trim())
+                      .addField('Permanent Link', messageLink)
+                      .setTimestamp();
+                    (secretChannel as Discord.TextChannel).send(secretMessageEmbed);
+                  });
+              }
             });
-          if (typeof channelSelection.secretChannelID !== 'undefined') {
-            const secretChannel = this.member.guild.channels.cache
-              .get(channelSelection.secretChannelID);
-            // this is just in case the person changed their nickname
-            // since the last time the cache was updated
-            this.member.fetch(true)
-              .then((m) => {
-                let author = m.user.username;
-                if (m.nickname !== null) {
-                  author = `${m.nickname} (${m.user.username})`;
-                }
-                const secretMessageEmbed = new Discord.MessageEmbed()
-                  .setAuthor(author, m.user.avatarURL())
-                  .setTitle('Anonymous Message Secret Info')
-                  .addField('Contents', this.requestMsg.content.trim())
-                  .setTimestamp();
-                (secretChannel as Discord.TextChannel).send(secretMessageEmbed);
-              });
-          }
         });
     }
   }
@@ -145,6 +152,10 @@ class AnonymousMessagePrompt {
         t.spawnTimeout();
       }
     }, AnonymousMessagePrompt.timeoutTime);
+  }
+
+  despawnTimeout(): void {
+    clearTimeout(this.timeoutEvent);
   }
 }
 

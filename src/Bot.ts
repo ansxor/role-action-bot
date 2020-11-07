@@ -55,6 +55,7 @@ class Bot {
     });
     // * creating a test case for the anonymous messages.
     this.anonMsgPHandler.serverConfigurations.set('518116162320728075', new AnonymousMessageServerConfiguration());
+    this.anonMsgPHandler.serverConfigurations.get('518116162320728075').secretChannelID = '774536860374401025';
     this.anonMsgPHandler.serverConfigurations.get('518116162320728075').channelConfigurations = [
       {
         channelID: '772100662360014868',
@@ -70,7 +71,6 @@ class Bot {
             emoji: '♿',
             description: 'Channel for Ralsei',
             channelID: '774531326203527178',
-            secretChannelID: '774536860374401025',
           },
         ],
       },

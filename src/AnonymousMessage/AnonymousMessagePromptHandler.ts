@@ -16,6 +16,9 @@ class AnonymousMessagePromptHandler {
   }
 
   generatePrompt(msg: Discord.Message): void {
+    if (this.promptMap.has(msg.author.id)) {
+      this.promptMap.get(msg.author.id).despawnTimeout();
+    }
     this.promptMap.set(msg.author.id, new AnonymousMessagePrompt(msg, this));
   }
 }
