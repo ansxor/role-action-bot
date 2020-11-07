@@ -1,4 +1,6 @@
 import Bot from './Bot';
 
-// eslint-disable-next-line no-new
-new Bot('');
+if (process.argv.length === 3) {
+  // eslint-disable-next-line no-new
+  new Bot(process.argv[2]);
+}

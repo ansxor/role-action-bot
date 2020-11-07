@@ -1,5 +1,6 @@
 import * as Discord from 'discord.js';
 import AnonymousMessagePromptHandler from './AnonymousMessagePromptHandler';
+import Bot from '../Bot';
 
 enum AnonymousMessagePromptState {
   ChannelSelection,
@@ -22,8 +23,8 @@ class AnonymousMessagePrompt {
   /** the amount of time to wait before timing out the user from making any more actions */
   private static readonly timeoutTime: number = 60 * 1000;
 
-  /** the user being being prompted */
-  private user: Discord.GuildMember;
+  /** the user being prompted */
+  private member: Discord.GuildMember;
 
   /** the current prompt state to check how to handle reactions on the anonymous message */
   private currentState: AnonymousMessagePromptState;
@@ -34,29 +35,74 @@ class AnonymousMessagePrompt {
   /** the manager that the prompt belongs to */
   private parentHandler: AnonymousMessagePromptHandler;
 
-  constructor(handler: AnonymousMessagePromptHandler) {
-    this.parentHandler = handler;
-    this.parentHandler.promptMap.set(this.user.id, this);
-    this.sendChannelSelectionMessage();
-    setTimeout(this.timeoutHandler, AnonymousMessagePrompt.timeoutTime);
-    console.log('Hello, World!');
-  }
+  /** contains the timeout event, used to refresh it whenever an event happens */
+  private timeoutEvent: NodeJS.Timeout;
 
-  sendChannelSelectionMessage() {
-    this.currentState = AnonymousMessagePromptState.ChannelSelection;
-  }
+  /** contains the message that requested the prompt */
+  private requestMsg: Discord.Message;
 
-  reactionHandler() {
-    console.log(this.currentState);
-  }
-
-  timeoutHandler() {
-    if (this.currentState === this.oldState) {
-      this.parentHandler.promptMap.delete(this.user.id);
-    } else {
-      this.oldState = this.currentState;
-      setTimeout(this.timeoutHandler, AnonymousMessagePrompt.timeoutTime);
+  constructor(msg: Discord.Message, handler: AnonymousMessagePromptHandler, bot: Bot) {
+    if (msg.channel.type === 'dm') {
+      this.requestMsg = msg;
+      const user = msg.author;
+      // try to get the member from a server automatically
+      const servers = Array.from(handler.serverConfigurations.keys()).filter((k) => {
+        const server = bot.client.guilds.cache.get(k);
+        return server.members.fetch(msg.author.id) !== null;
+      });
+      // TODO: If the bot is in several servers of the user, there should
+      // be a server prompt selection screen and it should always default to that
+      // server if they ever attempt to send a message again.
+      if (servers.length > 0) {
+        const serverKey = servers[0];
+        if (bot.client.guilds.cache.has(serverKey)) {
+          const server = bot.client.guilds.cache.get(serverKey);
+          server.members.fetch(user.id).then((member) => {
+            this.member = member;
+            this.parentHandler = handler;
+            this.sendChannelSelectionMessage();
+          });
+        }
+      }
     }
+  }
+
+  private sendChannelSelectionMessage(): void {
+    this.currentState = AnonymousMessagePromptState.ChannelSelection;
+    const server = this.parentHandler.serverConfigurations.get(this.member.guild.id);
+    const channelList = server.generateChannelList(this.member);
+    const messageEmbed = new Discord.MessageEmbed()
+      .setTitle('Select channel to send to...')
+      .setDescription(this.requestMsg.content.trim());
+    channelList.forEach((c) => {
+      messageEmbed.addField(c.emoji, c.description, true);
+    });
+    this.member.user.dmChannel.send(messageEmbed)
+      .then((m) => {
+        this.spawnTimeout();
+        channelList.forEach((c) => { m.react(c.emoji); });
+      });
+  }
+
+  reactionHandler(): void {
+    this.member.user.dmChannel.send(this.currentState);
+  }
+
+  private spawnTimeout(): void {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const t = this;
+    clearTimeout(this.timeoutEvent);
+    this.timeoutEvent = setTimeout(() => {
+      if (t.currentState === t.oldState) {
+        t.requestMsg.channel.send('Sorry, your message has expired.')
+          .then(() => {
+            t.parentHandler.promptMap.delete(t.member.id);
+          });
+      } else {
+        t.oldState = t.currentState;
+        t.spawnTimeout();
+      }
+    }, AnonymousMessagePrompt.timeoutTime);
   }
 }
 

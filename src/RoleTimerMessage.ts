@@ -73,7 +73,7 @@ class RoleTimerMessage {
    * @param rct The reaction that was added
    * @param user The user that made the reaction on the message
    */
-  spawnTimer(rct: Discord.MessageReaction, user: Discord.GuildMember) {
+  spawnTimer(rct: Discord.MessageReaction, user: Discord.GuildMember): void {
     let cancelAction = false;
     let currentRole: string;
 
@@ -113,11 +113,10 @@ class RoleTimerMessage {
    * when trying to remove roles by unreacting to the message.
    * @param user The user requesting the role to be removed.
    */
-  removeRole(user: Discord.GuildMember) {
+  removeRole(user: Discord.GuildMember): void {
     this.actions
       .forEach((action: RoleTimerMessageAction) => {
         user.roles.remove(action.role)
-          .then(() => {})
           .catch(() => {
             this.msg.channel.send('This bot can\'t set roles for some reason???\n');
           });
@@ -128,7 +127,7 @@ class RoleTimerMessage {
    * FIXME: Removes the reaction from the user on the RoleTimerMessage.
    * @param user The user requesting the reaction to be removed.
    */
-  removeReaction(user: Discord.GuildMember) {
+  removeReaction(user: Discord.GuildMember): void {
     this.msg.reactions.cache
       .filter((reaction) => reaction.users.cache.has(user.id))
       .get(this.emoji)
