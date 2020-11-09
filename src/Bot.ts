@@ -11,45 +11,18 @@ class Bot {
   private anonMsgPHandler: AnonymousMessagePromptHandler;
 
   constructor(token: string) {
-    // this is because discord.js is written in JavaScript so =this= is overwritten,
-    // so this allows us to access the TypeScript object inside of the handlers
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const b = this;
-
     this.anonMsgPHandler = new AnonymousMessagePromptHandler();
     this.trackedMessage = new Map();
     this.client = new Discord.Client();
-    this.client.on('ready', () => {
-      b.loginHandler();
-    });
-    this.client.on('message', (msg: Discord.Message) => {
-      b.messageHandler(msg);
-    });
-    this.client.on(
-      'messageReactionAdd',
-      (r: Discord.MessageReaction, u: Discord.User) => {
-        b.reactionHandler(r, u);
-      },
-    );
-    this.client.on(
-      'messageReactionRemove',
-      (r: Discord.MessageReaction, u: Discord.User) => {
-        b.reactionRemovalHandler(r, u);
-      },
-    );
-    // this.client.on(
-    //   "voiceStateUpdate",
-    //   (o: Discord.VoiceState, n: Discord.VoiceState) => {
-    //     if (o.channel !== n.channel) {
-    //       b.voiceUserMovedHandler(n.member);
-    //     }
-    //   }
-    // );
+    this.client.on('ready', this.loginHandler);
+    this.client.on('message', this.messageHandler);
+    this.client.on('messageReactionAdd', this.reactionHandler);
+    this.client.on('messageReactionRemove', this.reactionRemovalHandler);
     this.client.login(token);
   }
 
   // eslint-disable-next-line class-methods-use-this
-  private loginHandler() {
+  private loginHandler = () => {
     this.client.user.setActivity({
       name: 'USED FOR TESTING ATM',
     });
@@ -77,7 +50,7 @@ class Bot {
     ];
   }
 
-  private messageHandler(msg: Discord.Message) {
+  private messageHandler = (msg: Discord.Message) => {
     if (msg.author.id !== this.client.user.id) {
       // TODO: Make command only available to people with correct permissions
       if (msg.content.substr(0, 1) === '>') {
@@ -92,10 +65,10 @@ class Bot {
     }
   }
 
-  private reactionHandler(
+  private reactionHandler = (
     rct: Discord.MessageReaction,
     user: Discord.User,
-  ) {
+  ) => {
     if (this.trackedMessage.has(rct.message.id)) {
       if (user.id !== this.client.user.id) {
         rct.message.guild.members.fetch(user)
@@ -110,10 +83,10 @@ class Bot {
     }
   }
 
-  private reactionRemovalHandler(
+  private reactionRemovalHandler = (
     rct: Discord.MessageReaction,
     user: Discord.User,
-  ) {
+  ) => {
     if (this.trackedMessage.has(rct.message.id)) {
       if (user !== this.client.user) {
         rct.message.guild.members.fetch(user)
@@ -127,17 +100,6 @@ class Bot {
       }
     }
   }
-
-  // private voiceUserMovedHandler(member: Discord.GuildMember) {
-  //   // FIXME: This also makes the reaction added by the bot get removed
-  //   // for some reason.
-  //   // this.trackedMessage.forEach((m: RoleTimerMessage) => {
-  //   //   m.actions.forEach((a: RoleTimerMessageAction) => {
-  //   //     member.roles.remove(a.role);
-  //   //   });
-  //   //   m.removeReaction(member);
-  //   // });
-  // }
 }
 
 export { Bot as default };
